@@ -8,10 +8,17 @@ export const errorHandler = (
     next: NextFunction
 ): void => {
     console.error('💥 Error no manejado:', err.stack);
+    // VULNERABLE: expone detalles internos del sistema en cualquier entorno
     res.status(500).json({
         success: false,
-        message: 'Error interno del servidor',
-        ...(process.env.NODE_ENV === 'development' && { error: err.message }),
+        message: err.message,
+        error: err.stack,
+        details: {
+            name: err.name,
+            path: req.path,
+            method: req.method,
+            timestamp: new Date().toISOString()
+        }
     });
 };
 
