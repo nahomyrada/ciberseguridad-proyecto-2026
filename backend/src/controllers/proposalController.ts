@@ -5,6 +5,10 @@ import { SkillModel } from '../models/Skill';
 import { AIService } from '../services/aiService';
 
 // GET /api/proposals
+
+// VULNERABLE: BAC (CWE-284) — Retorna TODAS las propuestas
+// de TODOS los usuarios sin filtrar por usuario autenticado.
+
 export const getAllProposals = async (req: Request, res: Response): Promise<void> => {
     try {
         const { status } = req.query;
@@ -15,6 +19,11 @@ export const getAllProposals = async (req: Request, res: Response): Promise<void
         res.status(500).json({ success: false, message: 'Error al obtener propuestas' });
     }
 };
+
+// VULNERABLE: IDOR (CWE-639) — No se verifica que el recurso
+// pertenezca al usuario autenticado. Cualquier usuario con token válido
+// puede acceder, modificar o eliminar propuestas de otros usuarios
+// simplemente alterando el parámetro :id en la URL.
 
 // GET /api/proposals/:id
 export const getProposalById = async (req: Request, res: Response): Promise<void> => {
