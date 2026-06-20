@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import logger from '../utils/logger';
 
 export const errorHandler = (
     err: Error,
@@ -7,11 +8,19 @@ export const errorHandler = (
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     next: NextFunction
 ): void => {
-    console.error('💥 Error no manejado:', err.stack);
+    // Detalle completo SOLO al log interno del servidor.
+    logger.error('Error no manejado', {
+        message: err.message,
+        stack: err.stack,
+        method: req.method,
+        path: req.originalUrl,
+        ip: req.ip,
+    });
+
+    // Respuesta al cliente: siempre genérica, sin importar el entorno.
     res.status(500).json({
         success: false,
         message: 'Error interno del servidor',
-        ...(process.env.NODE_ENV === 'development' && { error: err.message }),
     });
 };
 
