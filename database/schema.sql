@@ -60,6 +60,9 @@ CREATE TABLE IF NOT EXISTS job_offers (
 
 CREATE TABLE IF NOT EXISTS proposals (
     id SERIAL PRIMARY KEY,
+    -- [BLUE] Fix IDOR (A01:2025 / CWE-639): vincula cada propuesta a su propietario.
+    -- Habilita la validación de propiedad (Tenant Isolation) en el backend.
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     job_offer_id INTEGER REFERENCES job_offers(id) ON DELETE CASCADE,
     match_score DECIMAL(3,2) CHECK (match_score BETWEEN 0 AND 1),
     matched_skills TEXT[],
@@ -109,6 +112,8 @@ CREATE INDEX IF NOT EXISTS idx_job_offers_platform ON job_offers(platform_id);
 CREATE INDEX IF NOT EXISTS idx_job_offers_is_relevant ON job_offers(is_relevant);
 CREATE INDEX IF NOT EXISTS idx_job_offers_discovered_at ON job_offers(discovered_at DESC);
 CREATE INDEX IF NOT EXISTS idx_proposals_status ON proposals(status);
+-- [BLUE] Fix IDOR: índice para filtrar propuestas por usuario autenticado.
+CREATE INDEX IF NOT EXISTS idx_proposals_user ON proposals(user_id);
 CREATE INDEX IF NOT EXISTS idx_proposals_job_offer ON proposals(job_offer_id);
 CREATE INDEX IF NOT EXISTS idx_applications_proposal ON applications(proposal_id);
 CREATE INDEX IF NOT EXISTS idx_earnings_received_date ON earnings(received_date DESC);

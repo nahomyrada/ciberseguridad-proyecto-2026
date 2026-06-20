@@ -8,7 +8,8 @@ import { AIService } from '../services/aiService';
 export const getAllProposals = async (req: Request, res: Response): Promise<void> => {
     try {
         const { status } = req.query;
-        const proposals = await ProposalModel.findAll(status as string | undefined);
+        // [BLUE] Fix IDOR (A01:2025): solo se devuelven las propuestas del usuario autenticado.
+        const proposals = await ProposalModel.findAllByUser(req.userId!, status as string | undefined);
         res.json({ success: true, data: proposals, count: proposals.length });
     } catch (error) {
         console.error('Error en getAllProposals:', error);
@@ -20,7 +21,9 @@ export const getAllProposals = async (req: Request, res: Response): Promise<void
 export const getProposalById = async (req: Request, res: Response): Promise<void> => {
     try {
         const proposal = await ProposalModel.findById(parseInt(req.params.id));
-        if (!proposal) {
+        // [BLUE] Fix IDOR (A01:2025): si no existe o no pertenece al usuario, se responde
+        // 404 genérico para no revelar la existencia del recurso (anti-enumeración).
+        if (!proposal || proposal.user_id !== req.userId) {
             res.status(404).json({ success: false, message: 'Propuesta no encontrada' });
             return;
         }
@@ -52,8 +55,11 @@ export const createProposal = async (req: Request, res: Response): Promise<void>
         }
 
         // Mapear 'content' (frontend) a 'generated_content' (backend model) si es necesario
+        // [BLUE] Fix IDOR: el propietario se fija desde el token JWT, no desde el cliente
+        // (se ignora cualquier user_id enviado en el body para evitar Mass Assignment).
         const proposalData = {
             ...req.body,
+            user_id: req.userId,
             generated_content: generated_content || content
         };
 
@@ -74,7 +80,14 @@ export const updateProposalStatus = async (req: Request, res: Response): Promise
             res.status(400).json({ success: false, message: `Status inválido. Debe ser: ${validStatuses.join(', ')}` });
             return;
         }
-        const proposal = await ProposalModel.updateStatus(parseInt(req.params.id), status);
+        const id = parseInt(req.params.id);
+        // [BLUE] Fix IDOR (A01:2025): validar propiedad ANTES de modificar el recurso.
+        const existing = await ProposalModel.findById(id);
+        if (!existing || existing.user_id !== req.userId) {
+            res.status(404).json({ success: false, message: 'Propuesta no encontrada' });
+            return;
+        }
+        const proposal = await ProposalModel.updateStatus(id, status);
         if (!proposal) {
             res.status(404).json({ success: false, message: 'Propuesta no encontrada' });
             return;
@@ -89,7 +102,14 @@ export const updateProposalStatus = async (req: Request, res: Response): Promise
 // DELETE /api/proposals/:id
 export const deleteProposal = async (req: Request, res: Response): Promise<void> => {
     try {
-        const deleted = await ProposalModel.delete(parseInt(req.params.id));
+        const id = parseInt(req.params.id);
+        // [BLUE] Fix IDOR (A01:2025): validar propiedad ANTES de eliminar el recurso.
+        const existing = await ProposalModel.findById(id);
+        if (!existing || existing.user_id !== req.userId) {
+            res.status(404).json({ success: false, message: 'Propuesta no encontrada' });
+            return;
+        }
+        const deleted = await ProposalModel.delete(id);
         if (!deleted) {
             res.status(404).json({ success: false, message: 'Propuesta no encontrada' });
             return;
@@ -104,7 +124,16 @@ export const deleteProposal = async (req: Request, res: Response): Promise<void>
 // PATCH /api/proposals/:id
 export const updateProposal = async (req: Request, res: Response): Promise<void> => {
     try {
-        const proposal = await ProposalModel.update(parseInt(req.params.id), req.body);
+        const id = parseInt(req.params.id);
+        // [BLUE] Fix IDOR (A01:2025): validar propiedad ANTES de actualizar el recurso.
+        const existing = await ProposalModel.findById(id);
+        if (!existing || existing.user_id !== req.userId) {
+            res.status(404).json({ success: false, message: 'Propuesta no encontrada' });
+            return;
+        }
+        // [BLUE] Anti Mass Assignment: el cliente no puede reasignar el propietario.
+        const { user_id, ...safeData } = req.body;
+        const proposal = await ProposalModel.update(id, safeData);
         if (!proposal) {
             res.status(404).json({ success: false, message: 'Propuesta no encontrada' });
             return;

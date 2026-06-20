@@ -2,6 +2,8 @@ import pool from '../config/database';
 
 export interface Proposal {
     id: number;
+    // [BLUE] Fix IDOR (A01:2025): propietario de la propuesta.
+    user_id: number;
     job_offer_id: number;
     match_score: number | null;
     matched_skills: string[];
@@ -13,6 +15,8 @@ export interface Proposal {
 }
 
 export interface CreateProposalInput {
+    // [BLUE] Fix IDOR: el propietario se toma del token JWT, nunca del cliente.
+    user_id: number;
     job_offer_id: number;
     match_score?: number;
     matched_skills?: string[];
@@ -22,11 +26,12 @@ export interface CreateProposalInput {
 export class ProposalModel {
     static async create(input: CreateProposalInput): Promise<Proposal> {
         const query = `
-      INSERT INTO proposals (job_offer_id, match_score, matched_skills, generated_content)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO proposals (user_id, job_offer_id, match_score, matched_skills, generated_content)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `;
         const result = await pool.query(query, [
+            input.user_id,
             input.job_offer_id,
             input.match_score || null,
             input.matched_skills || [],
@@ -63,6 +68,20 @@ export class ProposalModel {
       ORDER BY p.created_at DESC
     `;
         const result = await pool.query(query, status ? [status] : []);
+        return result.rows;
+    }
+
+    // [BLUE] Fix IDOR: devuelve únicamente las propuestas del usuario autenticado.
+    static async findAllByUser(userId: number, status?: string): Promise<Proposal[]> {
+        const query = `
+      SELECT p.*, jo.title as job_title, jo.url as job_url
+      FROM proposals p
+      LEFT JOIN job_offers jo ON p.job_offer_id = jo.id
+      WHERE p.user_id = $1
+      ${status ? 'AND p.status = $2' : ''}
+      ORDER BY p.created_at DESC
+    `;
+        const result = await pool.query(query, status ? [userId, status] : [userId]);
         return result.rows;
     }
 
