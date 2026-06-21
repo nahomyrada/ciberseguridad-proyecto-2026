@@ -28,3 +28,29 @@ Port 2222
 Tras el cambio, el servicio fue reiniciado y habilitado en el arranque.
 
 ---
+
+## 2. Especificaciones de las Máquinas Virtuales (VMs)
+
+El laboratorio consta de dos máquinas interconectadas mediante VirtualBox, configuradas con las siguientes especificaciones:
+
+**VM 1: Máquina Ofensiva (Red Team)**
+* **Sistema Operativo:** Kali Linux (Debian 64-bit)
+* **Versión:** 2026.1
+* **RAM:** 4 GB
+* **Almacenamiento:** 80 GB
+* **Red:** * Adaptador 1: NAT
+           *  Adaptador 2: Red Interna (IP: 192.168.5.10)
+
+**VM 2: Máquina Víctima (Blue Team)**
+* **Sistema Operativo:** Ubuntu Server
+* **Versión:** 22.04 LTS
+* **RAM:** 2 GB
+* **Almacenamiento:** 20 GB
+* **Red:** * Adaptador 1: NAT
+           * Adaptador 2: Red Interna (IP: 192.168.5.20)
+
+---
+
+## 3. Diagrama de Red de la Topología
+
+![Diagrama de Red](../docs/images/Topología.png)
