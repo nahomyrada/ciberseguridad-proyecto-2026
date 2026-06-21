@@ -54,3 +54,15 @@ El laboratorio consta de dos máquinas interconectadas mediante VirtualBox, conf
 ## 3. Diagrama de Red de la Topología
 
 ![Diagrama de Red](../docs/images/Topología.png)
+
+---
+
+## 4. Evidencia de Conectividad
+
+**Ping desde Kali Linux hacia Ubuntu Server:**
+
+![Ping Kali](../docs/images/PingKali.png)
+
+**Ping desde Ubuntu Server hacia Kali Linux:**
+
+![Ping Ubuntu](../docs/images/PingUbuntu.png)
