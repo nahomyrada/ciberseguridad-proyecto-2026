@@ -1,0 +1,152 @@
+# Nmap 7.98 scan initiated Sun Jul 12 09:31:01 2026 as: /usr/lib/nmap/nmap --privileged -sV -sC -p- -oN resultado_nmap.txt 192.168.5.20
+Nmap scan report for 192.168.5.20
+Host is up (0.00052s latency).
+Not shown: 65532 closed tcp ports (reset)
+PORT     STATE SERVICE VERSION
+22/tcp   open  ssh     OpenSSH 8.9p1 Ubuntu 3ubuntu0.15 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   256 15:b0:27:0b:1d:d3:c8:34:a5:2a:4d:b7:33:0d:8d:21 (ECDSA)
+|_  256 6f:99:03:51:fb:b2:c2:6d:d5:6a:18:f0:2c:08:63:0f (ED25519)
+3000/tcp open  ppp?
+| fingerprint-strings: 
+|   GetRequest: 
+|     HTTP/1.1 200 OK
+|     Vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Url, Accept-Encoding
+|     Cache-Control: no-store, must-revalidate
+|     X-Powered-By: Next.js
+|     Content-Type: text/html; charset=utf-8
+|     Date: Sun, 12 Jul 2026 13:31:32 GMT
+|     Connection: close
+|     <!DOCTYPE html><html lang="es"><head><meta charSet="utf-8"/><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="/_next/static/css/app/layout.css?v=1783863092590" data-precedence="next_static/css/app/layout.css"/><link rel="preload" as="script" fetchPriority="low" href="/_next/static/chunks/webpack.js?v=1783863092590"/><script src="/_next/static/chunks/mai
+|   HTTPOptions: 
+|     HTTP/1.1 200 OK
+|     Vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Url, Accept-Encoding
+|     Cache-Control: no-store, must-revalidate
+|     X-Powered-By: Next.js
+|     Content-Type: text/html; charset=utf-8
+|     Date: Sun, 12 Jul 2026 13:31:32 GMT
+|     Connection: close
+|     <!DOCTYPE html><html lang="es"><head><meta charSet="utf-8"/><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="/_next/static/css/app/layout.css?v=1783863092751" data-precedence="next_static/css/app/layout.css"/><link rel="preload" as="script" fetchPriority="low" href="/_next/static/chunks/webpack.js?v=1783863092751"/><script src="/_next/static/chunks/mai
+|   Help, NCP: 
+|     HTTP/1.1 400 Bad Request
+|_    Connection: close
+3001/tcp open  nessus?
+| fingerprint-strings: 
+|   GetRequest: 
+|     HTTP/1.1 404 Not Found
+|     Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests
+|     Cross-Origin-Opener-Policy: same-origin
+|     Cross-Origin-Resource-Policy: same-origin
+|     Origin-Agent-Cluster: ?1
+|     Referrer-Policy: no-referrer
+|     Strict-Transport-Security: max-age=15552000; includeSubDomains
+|     X-Content-Type-Options: nosniff
+|     X-DNS-Prefetch-Control: off
+|     X-Download-Options: noopen
+|     X-Frame-Options: SAMEORIGIN
+|     X-Permitted-Cross-Domain-Policies: none
+|     X-XSS-Protection: 0
+|     Access-Control-Allow-Origin: http://localhost:3000
+|     Vary: Origin
+|     Access-Control-Allow-Credentials: true
+|     Content-Type: application/json; charset=utf-8
+|     Content-Length: 55
+|     ETag: W/"37-Hyts0i4zi8awK3X4fdMahTKS+Zs"
+|   HTTPOptions: 
+|     HTTP/1.1 204 No Content
+|     Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests
+|     Cross-Origin-Opener-Policy: same-origin
+|     Cross-Origin-Resource-Policy: same-origin
+|     Origin-Agent-Cluster: ?1
+|     Referrer-Policy: no-referrer
+|     Strict-Transport-Security: max-age=15552000; includeSubDomains
+|     X-Content-Type-Options: nosniff
+|     X-DNS-Prefetch-Control: off
+|     X-Download-Options: noopen
+|     X-Frame-Options: SAMEORIGIN
+|     X-Permitted-Cross-Domain-Policies: none
+|     X-XSS-Protection: 0
+|     Access-Control-Allow-Origin: http://localhost:3000
+|     Vary: Origin, Access-Control-Request-Headers
+|     Access-Control-Allow-Credentials: true
+|     Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE
+|     Content-Leng
+|   NCP: 
+|     HTTP/1.1 400 Bad Request
+|_    Connection: close
+2 services unrecognized despite returning data. If you know the service/version, please submit the following fingerprints at https://nmap.org/cgi-bin/submit.cgi?new-service :
+==============NEXT SERVICE FINGERPRINT (SUBMIT INDIVIDUALLY)==============
+SF-Port3000-TCP:V=7.98%I=7%D=7/12%Time=6A539733%P=x86_64-pc-linux-gnu%r(Ge
+SF:tRequest,1D50,"HTTP/1\.1\x20200\x20OK\r\nVary:\x20RSC,\x20Next-Router-S
+SF:tate-Tree,\x20Next-Router-Prefetch,\x20Next-Url,\x20Accept-Encoding\r\n
+SF:Cache-Control:\x20no-store,\x20must-revalidate\r\nX-Powered-By:\x20Next
+SF:\.js\r\nContent-Type:\x20text/html;\x20charset=utf-8\r\nDate:\x20Sun,\x
+SF:2012\x20Jul\x202026\x2013:31:32\x20GMT\r\nConnection:\x20close\r\n\r\n<
+SF:!DOCTYPE\x20html><html\x20lang=\"es\"><head><meta\x20charSet=\"utf-8\"/
+SF:><meta\x20charSet=\"utf-8\"/><meta\x20name=\"viewport\"\x20content=\"wi
+SF:dth=device-width,\x20initial-scale=1\"/><link\x20rel=\"preconnect\"\x20
+SF:href=\"https://fonts\.googleapis\.com\"/><link\x20rel=\"preconnect\"\x2
+SF:0href=\"https://fonts\.gstatic\.com\"\x20crossorigin=\"anonymous\"/><me
+SF:ta\x20name=\"viewport\"\x20content=\"width=device-width,\x20initial-sca
+SF:le=1\"/><link\x20rel=\"stylesheet\"\x20href=\"/_next/static/css/app/lay
+SF:out\.css\?v=1783863092590\"\x20data-precedence=\"next_static/css/app/la
+SF:yout\.css\"/><link\x20rel=\"preload\"\x20as=\"script\"\x20fetchPriority
+SF:=\"low\"\x20href=\"/_next/static/chunks/webpack\.js\?v=1783863092590\"/
+SF:><script\x20src=\"/_next/static/chunks/mai")%r(Help,2F,"HTTP/1\.1\x2040
+SF:0\x20Bad\x20Request\r\nConnection:\x20close\r\n\r\n")%r(NCP,2F,"HTTP/1\
+SF:.1\x20400\x20Bad\x20Request\r\nConnection:\x20close\r\n\r\n")%r(HTTPOpt
+SF:ions,1D50,"HTTP/1\.1\x20200\x20OK\r\nVary:\x20RSC,\x20Next-Router-State
+SF:-Tree,\x20Next-Router-Prefetch,\x20Next-Url,\x20Accept-Encoding\r\nCach
+SF:e-Control:\x20no-store,\x20must-revalidate\r\nX-Powered-By:\x20Next\.js
+SF:\r\nContent-Type:\x20text/html;\x20charset=utf-8\r\nDate:\x20Sun,\x2012
+SF:\x20Jul\x202026\x2013:31:32\x20GMT\r\nConnection:\x20close\r\n\r\n<!DOC
+SF:TYPE\x20html><html\x20lang=\"es\"><head><meta\x20charSet=\"utf-8\"/><me
+SF:ta\x20charSet=\"utf-8\"/><meta\x20name=\"viewport\"\x20content=\"width=
+SF:device-width,\x20initial-scale=1\"/><link\x20rel=\"preconnect\"\x20href
+SF:=\"https://fonts\.googleapis\.com\"/><link\x20rel=\"preconnect\"\x20hre
+SF:f=\"https://fonts\.gstatic\.com\"\x20crossorigin=\"anonymous\"/><meta\x
+SF:20name=\"viewport\"\x20content=\"width=device-width,\x20initial-scale=1
+SF:\"/><link\x20rel=\"stylesheet\"\x20href=\"/_next/static/css/app/layout\
+SF:.css\?v=1783863092751\"\x20data-precedence=\"next_static/css/app/layout
+SF:\.css\"/><link\x20rel=\"preload\"\x20as=\"script\"\x20fetchPriority=\"l
+SF:ow\"\x20href=\"/_next/static/chunks/webpack\.js\?v=1783863092751\"/><sc
+SF:ript\x20src=\"/_next/static/chunks/mai");
+==============NEXT SERVICE FINGERPRINT (SUBMIT INDIVIDUALLY)==============
+SF-Port3001-TCP:V=7.98%I=7%D=7/12%Time=6A53972E%P=x86_64-pc-linux-gnu%r(NC
+SF:P,2F,"HTTP/1\.1\x20400\x20Bad\x20Request\r\nConnection:\x20close\r\n\r\
+SF:n")%r(GetRequest,3F7,"HTTP/1\.1\x20404\x20Not\x20Found\r\nContent-Secur
+SF:ity-Policy:\x20default-src\x20'self';base-uri\x20'self';font-src\x20'se
+SF:lf'\x20https:\x20data:;form-action\x20'self';frame-ancestors\x20'self';
+SF:img-src\x20'self'\x20data:;object-src\x20'none';script-src\x20'self';sc
+SF:ript-src-attr\x20'none';style-src\x20'self'\x20https:\x20'unsafe-inline
+SF:';upgrade-insecure-requests\r\nCross-Origin-Opener-Policy:\x20same-orig
+SF:in\r\nCross-Origin-Resource-Policy:\x20same-origin\r\nOrigin-Agent-Clus
+SF:ter:\x20\?1\r\nReferrer-Policy:\x20no-referrer\r\nStrict-Transport-Secu
+SF:rity:\x20max-age=15552000;\x20includeSubDomains\r\nX-Content-Type-Optio
+SF:ns:\x20nosniff\r\nX-DNS-Prefetch-Control:\x20off\r\nX-Download-Options:
+SF:\x20noopen\r\nX-Frame-Options:\x20SAMEORIGIN\r\nX-Permitted-Cross-Domai
+SF:n-Policies:\x20none\r\nX-XSS-Protection:\x200\r\nAccess-Control-Allow-O
+SF:rigin:\x20http://localhost:3000\r\nVary:\x20Origin\r\nAccess-Control-Al
+SF:low-Credentials:\x20true\r\nContent-Type:\x20application/json;\x20chars
+SF:et=utf-8\r\nContent-Length:\x2055\r\nETag:\x20W/\"37-Hyts0i4zi8awK3X4fd
+SF:MahTKS\+Zs\"")%r(HTTPOptions,3C5,"HTTP/1\.1\x20204\x20No\x20Content\r\n
+SF:Content-Security-Policy:\x20default-src\x20'self';base-uri\x20'self';fo
+SF:nt-src\x20'self'\x20https:\x20data:;form-action\x20'self';frame-ancesto
+SF:rs\x20'self';img-src\x20'self'\x20data:;object-src\x20'none';script-src
+SF:\x20'self';script-src-attr\x20'none';style-src\x20'self'\x20https:\x20'
+SF:unsafe-inline';upgrade-insecure-requests\r\nCross-Origin-Opener-Policy:
+SF:\x20same-origin\r\nCross-Origin-Resource-Policy:\x20same-origin\r\nOrig
+SF:in-Agent-Cluster:\x20\?1\r\nReferrer-Policy:\x20no-referrer\r\nStrict-T
+SF:ransport-Security:\x20max-age=15552000;\x20includeSubDomains\r\nX-Conte
+SF:nt-Type-Options:\x20nosniff\r\nX-DNS-Prefetch-Control:\x20off\r\nX-Down
+SF:load-Options:\x20noopen\r\nX-Frame-Options:\x20SAMEORIGIN\r\nX-Permitte
+SF:d-Cross-Domain-Policies:\x20none\r\nX-XSS-Protection:\x200\r\nAccess-Co
+SF:ntrol-Allow-Origin:\x20http://localhost:3000\r\nVary:\x20Origin,\x20Acc
+SF:ess-Control-Request-Headers\r\nAccess-Control-Allow-Credentials:\x20tru
+SF:e\r\nAccess-Control-Allow-Methods:\x20GET,HEAD,PUT,PATCH,POST,DELETE\r\
+SF:nContent-Leng");
+MAC Address: 08:00:27:A6:01:B9 (Oracle VirtualBox virtual NIC)
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at Sun Jul 12 09:31:32 2026 -- 1 IP address (1 host up) scanned in 30.41 seconds
