@@ -10,10 +10,7 @@
 # Forzar error interno enviando JSON malformado
 # Objetivo: obtener stack trace, nombre de tablas, versión de DB
 
-curl -X POST http://[IP-UBUNTU]:3001/api/proposals \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer [TOKEN]" \
-  -d '{"job_offer_id": "esto_no_es_un_numero"}'
+nmap -sV -sC -p- 192.168.5.20
 
 # ---- FASE 2: ACCESO INICIAL (TA0001 · T1078) ----------------
 # Registrar cuenta legítima y obtener JWT
