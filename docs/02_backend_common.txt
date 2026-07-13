@@ -1,0 +1,4 @@
+cgi-bin/            [36m (Status: 308)[0m [Size: 8][34m [--> /cgi-bin][0m
+dashboard           [32m (Status: 200)[0m [Size: 9254]
+login               [32m (Status: 200)[0m [Size: 11670]
+register            [32m (Status: 200)[0m [Size: 11624]
