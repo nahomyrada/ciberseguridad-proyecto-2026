@@ -72,3 +72,39 @@ El escaneo de vulnerabilidades identificó un total de **13 alertas** clasificad
 *   **Ausencia de HTTP Strict Transport Security (HSTS):** No se obliga al navegador a comunicarse exclusivamente mediante HTTPS seguro.
 *   **Exposición de IP Privada:** Se detectó la inclusión de una dirección IP interna (`10.1.1.2`) en el cuerpo de la respuesta de un servicio analizado.
 *   **Falta de Cabecera `X-Content-Type-Options`:** Permite que los navegadores realicen *MIME-sniffing*, lo que podría llevar a la ejecución de archivos de texto o imágenes como código ejecutable si se logran vulnerar las subidas de archivos.
+
+## Enumeración de Directorios con Gobuster
+
+Como parte del proceso de reconocimiento activo, se realizó un escaneo de directorios y archivos en el servidor objetivo utilizando la herramienta **Gobuster**. El objetivo fue identificar recursos web accesibles que pudieran ampliar la superficie de ataque o revelar información sensible.
+
+### Detalles del Escaneo
+* **Herramienta utilizada:** Gobuster v3.6
+* **Objetivos:** `http://192.168.5.20:3000` (Frontend) y `http://192.168.5.20:3001` (Backend)
+* **Diccionario utilizado:** `/usr/share/wordlists/dirb/common.txt` (4.600 entradas)
+* **Extensiones probadas:** `.html`, `.js`, `.css`, `.json`
+* **Hilos:** 10
+* **Timeout:** 30 segundos
+
+### Resultados Obtenidos
+El escaneo sobre el puerto 3000 arrojó las siguientes rutas activas:
+
+| Ruta | Código HTTP | Tamaño (bytes) | Redirección | Interpretación |
+|------|-------------|----------------|-------------|----------------|
+| `/cgi-bin/` | 308 | 8 | → `/cgi-bin` | Directorio CGI expuesto, probablemente heredado o mal configurado. La redirección 308 indica un movimiento permanente. |
+| `/dashboard` | 200 | 9.254 | - | Panel de usuario o área restringida. El código 200 confirma que es accesible sin autenticación aparente (o con autenticación básica no detectada). |
+| `/login` | 200 | 11.670 | - | Formulario de inicio de sesión. Tamaño considerable, sugiere la presencia de estilos y scripts embebidos. |
+| `/register` | 200 | 11.624 | - | Formulario de registro de nuevos usuarios. Similar en tamaño a `/login`. |
+
+El mismo conjunto de rutas fue identificado en el puerto 3001, lo que sugiere que ambos servicios comparten la misma estructura de rutas.
+
+### Análisis de Hallazgos
+* **Superficie de ataque expuesta:** Las rutas `/login` y `/register` son críticas, ya que manejan autenticación y registro de usuarios. Su exposición sin protección adicional (como CAPTCHA o rate limiting) podría facilitar ataques de fuerza bruta o enumeración de usuarios.
+* **Directorio CGI:** La presencia de `/cgi-bin/` es inusual en aplicaciones Node.js modernas. Podría indicar la existencia de scripts legacy o un servidor web adicional (como Apache o Nginx) corriendo en el mismo puerto. Este punto merece una investigación más profunda.
+
+### Evidencia
+Los archivos de salida de Gobuster (`01_frontend_common.txt` y `02_backend_common.txt`) se adjuntan como evidencia del escaneo.
+
+### Correlación con Otros Hallazgos
+* **ZAP** ya había detectado la ausencia de cabeceras de seguridad en el puerto 3000, lo que se confirma con la exposición de rutas como `/dashboard` y `/login` sin protección adicional.
+* **Nmap** identificó que el puerto 3000 corre Next.js, lo que explica la estructura de rutas típica de aplicaciones React/Next (páginas como `dashboard`, `login`, `register` suelen ser componentes de página).
+* La ruta `/cgi-bin/` no fue mencionada en los escaneos de Nmap ni ZAP, por lo que es un **hallazgo nuevo**.
