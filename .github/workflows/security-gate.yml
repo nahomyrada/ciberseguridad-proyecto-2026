@@ -72,7 +72,9 @@ jobs:
 
       - name: Instalar dependencias
         working-directory: backend
-        run: npm ci
+        # --include=dev fuerza las devDependencies (ts-node / ts-node-dev) aunque
+        # NODE_ENV=production, necesarias para el seed y para levantar el backend.
+        run: npm ci --include=dev
 
       # --- Capa 3: SAST basico sobre dependencias (informativo, no bloquea) -----
       # No bloquea el gate por advisories de dependencias transitivas de terceros;
@@ -107,7 +109,7 @@ jobs:
       # --- Capa 4: DAST informativo (no bloquea por falsos positivos) ----------
       - name: OWASP ZAP baseline (DAST)
         continue-on-error: true
-        uses: zaproxy/action-baseline@v0.12.0
+        uses: zaproxy/action-baseline@v0.15.0
         with:
           target: http://localhost:3001
           fail_action: false
