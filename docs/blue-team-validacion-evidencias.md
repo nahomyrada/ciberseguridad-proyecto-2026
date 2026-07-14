@@ -296,13 +296,89 @@ curl -s -X POST http://localhost:3001/api/proposals/generate \
 
 ---
 
-## 5. Conclusión
+## 5. Pipeline de seguridad (Security Gate CI/CD)
+
+Para impedir que estas vulnerabilidades **reaparezcan** en el futuro, se
+implementó un pipeline DevSecOps en GitHub Actions
+(`.github/workflows/security-gate.yml`) que se ejecuta **automáticamente en cada
+Pull Request** hacia `main` y `version-sanitizada`.
+
+### Qué valida y qué bloquea
+
+| Capa | Herramienta | ¿Bloquea el merge? |
+|---|---|---|
+| Secret scanning | Gitleaks | ✅ Sí (con allowlist del secreto de demo documentado) |
+| SAST de dependencias | `npm audit` | ℹ️ No (informativo) |
+| **Regresión de vulnerabilidades** | `scripts/security-regression.sh` | ✅ **Sí — gate duro** |
+| DAST | OWASP ZAP baseline | ℹ️ No (informativo) |
+
+### Criterio: cuándo DEBE pasar y cuándo DEBE fallar
+
+El corazón del gate son los **tests de regresión**. El pipeline:
+
+- ✅ **PASA (exit 0 / check verde)** cuando el código está sanitizado: los accesos
+  a recursos ajenos devuelven `404`, el listado no expone datos de otros usuarios,
+  el dueño sí accede a lo suyo, y el `errorHandler` no filtra stack trace.
+- ❌ **FALLA (exit 1 / check rojo)** si reaparece **cualquiera** de las
+  vulnerabilidades ya parchadas → el PR queda marcado en rojo.
+
+### Casos de prueba del gate
+
+| # | Caso de prueba | Esperado (sanitizado) → PASA | Si ocurre esto → FALLA |
+|---|---|---|---|
+| 1 | Atacante `GET` propuesta ajena | `404` | `200` (IDOR) |
+| 2 | Atacante `PATCH` estado ajeno | `404` | `200` (IDOR) |
+| 3 | Atacante `GET /api/proposals` (listar) | no ve ajenas | ve recurso ajeno (IDOR) |
+| 4 | Atacante `DELETE` propuesta ajena | `404` | `200` (IDOR) |
+| 5 | Dueño accede a lo suyo (control) | `200` | `≠ 200` (parche roto) |
+| 6 | Error forzado (JSON malformado) | mensaje genérico | contiene `stack` / `error` / `SyntaxError` (A10) |
+
+### Evidencia real de ejecución
+
+**Contra la versión sanitizada → el gate PASA** (así corrió en GitHub Actions, 6/6):
+
+```text
+PASS: GET recurso ajeno -> 404
+PASS: PATCH recurso ajeno -> 404
+PASS: LIST no expone recursos ajenos
+PASS: DELETE recurso ajeno -> 404
+PASS: CONTROL: la duena accede a lo suyo -> 200
+PASS: El errorHandler no filtra stack trace ni detalles internos
+RESULTADO: ✅ Todas las pruebas de seguridad pasaron.        (exit 0 · check verde)
+```
+
+**Contra la versión vulnerable → el gate FALLA** (probado localmente, exit 1):
+
+```text
+FAIL: GET recurso ajeno -> 200 (esperado 404) [IDOR!]
+FAIL: PATCH recurso ajeno -> 200 (esperado 404) [IDOR!]
+FAIL: El atacante ve la propuesta ajena en GET /api/proposals [IDOR!]
+FAIL: DELETE recurso ajeno -> 200 (esperado 404) [IDOR!]
+FAIL: El errorHandler filtra internos (contiene: "error") [A10!]
+FAIL: El errorHandler filtra internos (contiene: SyntaxError) [A10!]
+RESULTADO: ❌ 9 prueba(s) fallaron — hay vulnerabilidad(es).  (exit 1 · check rojo)
+```
+
+Esto demuestra que el gate **distingue correctamente** el código seguro del
+vulnerable: verde en la rama sanitizada, rojo si alguien reintrodujera las fallas.
+Con branch protection (opcional) el check rojo impediría el merge por completo.
+
+> **Nota:** Prompt Injection queda **fuera** del gate automático por depender de
+> una llamada externa a Gemini (flaky y con costo por cuota). Su defensa se valida
+> aparte, con los tests deterministas de `sanitizeField` / `looksLikeInjectionSuccess`
+> (sección 3).
+
+---
+
+## 6. Conclusión
 
 | Vulnerabilidad | OWASP | Estado en `version-sanitizada` |
 |---|---|---|
 | IDOR / Broken Access Control | A01:2025 | ✅ Remediada y validada (404 en todo acceso ajeno) |
 | Prompt Injection | LLM01:2025 | ✅ Remediada y validada (P1 obedecido en vulnerable, bloqueado en sanitizada) |
+| Reintroducción de vulnerabilidades | — | ✅ Prevenida con Security Gate (CI) en cada PR |
 
 Ambas contramedidas fueron **verificadas empíricamente contra el código en
 ejecución**. La versión sanitizada resiste los mismos ataques que comprometen a
-la versión vulnerable, sin degradar la funcionalidad legítima.
+la versión vulnerable, sin degradar la funcionalidad legítima; y el pipeline de
+seguridad garantiza que ese estado se mantenga en el tiempo.
