@@ -1,0 +1,19 @@
+# ============================================================================
+# Configuracion de gitleaks — AutoApply Bot (proyecto academico)
+# ----------------------------------------------------------------------------
+# Se extiende la configuracion por defecto (sigue detectando claves/API keys
+# reales) y se exceptuan UNICAMENTE los valores de DEMO documentados en las
+# instrucciones de despliegue (README / CLAUDE.md), que no son secretos de
+# produccion sino datos para reproducir el laboratorio.
+# ============================================================================
+title = "AutoApply Bot - gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Valores de demostracion documentados (no son secretos reales)"
+# Exceptua el JWT_SECRET de demo del laboratorio dondequiera que aparezca.
+regexes = [
+  '''ciberseguridad-ucab-2026''',
+]
