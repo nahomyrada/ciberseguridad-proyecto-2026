@@ -106,6 +106,30 @@ done
 [ "$LEAK" = "0" ] && pass "El errorHandler no filtra stack trace ni detalles internos"
 
 # ---------------------------------------------------------------------------
+# TEST 3 — Vulnerabilidades adicionales (fuera del alcance obligatorio):
+# leak de token de reset (CWE-200) y RCE via eval() (CWE-94)
+# ---------------------------------------------------------------------------
+echo ""
+echo "[TEST 3] Vulnerabilidades adicionales (CWE-200 / CWE-94)"
+
+FP_RESP="$(curl -s -X POST "$API/api/auth/forgot-password" -H "Content-Type: application/json" \
+  -d "{\"email\":\"nadie_$SFX@test.local\"}")"
+if echo "$FP_RESP" | grep -q '"resetToken"'; then
+  fail "forgot-password expone resetToken en la respuesta [CWE-200!]"
+else
+  pass "forgot-password no expone el token de reset"
+fi
+
+RCE_PAYLOAD='{"inputs":{"mcpServerConfig":"{\"cmd\": (function(){ const { exec } = require(\"child_process\"); exec(\"id\"); })()}"}}'
+RCE_RESP="$(curl -s -X POST "$API/api/auth/node-load-method/customMCP" -H "Content-Type: application/json" \
+  --data "$RCE_PAYLOAD")"
+if echo "$RCE_RESP" | grep -qE '"success":true|uid='; then
+  fail "customMCP ejecutó el payload (eval activo) [CWE-94!]"
+else
+  pass "customMCP rechaza el payload no-JSON (eval eliminado)"
+fi
+
+# ---------------------------------------------------------------------------
 echo ""
 echo "==================================================================="
 if [ "$FAILS" -eq 0 ]; then
