@@ -113,3 +113,4 @@ jobs:
         with:
           target: http://localhost:3001
           fail_action: false
+          allow_issue_writing: false   # evita el error "Resource not accessible" (no crea issues)
