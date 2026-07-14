@@ -1,0 +1,2 @@
+# Los scripts de shell SIEMPRE con saltos de linea LF (si no, bash falla en Linux/CI).
+*.sh text eol=lf

@@ -5,6 +5,12 @@ frontend/.env.local
 database/*.sqlite
 .DS_Store
 
+# Variables de entorno (NUNCA subir secretos como GEMINI_API_KEY / JWT_SECRET)
+.env
+.env.*
+backend/.env
+!.env.example
+
 # Logs
 *.log
 logs/

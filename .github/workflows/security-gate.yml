@@ -1,0 +1,116 @@
+# ============================================================================
+# [BLUE] Security Gate — pipeline DevSecOps (DAST/SAST + regresion)
+# ----------------------------------------------------------------------------
+# Previene la REINTRODUCCION de las vulnerabilidades ya parchadas. Se ejecuta en
+# cada Pull Request hacia main o version-sanitizada. Si detecta que el codigo
+# volvio a ser vulnerable, el job falla y (con branch protection) bloquea el merge.
+#
+# Cubre:  A01:2025 IDOR  ·  A10:2025 Information Disclosure (errorHandler)
+# (Prompt Injection queda fuera del gate por depender de una llamada externa a
+#  Gemini —flaky/costosa—; su defensa se cubre con tests unitarios aparte.)
+#
+# NOTA: las versiones de las actions estan fijadas a releases estables; conviene
+# confirmarlas en el marketplace de GitHub al adoptarlas.
+# ============================================================================
+name: Security Gate
+
+on:
+  pull_request:
+    branches: [main, version-sanitizada]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  security-gate:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: autoapply
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DB_URL: postgresql://postgres:postgres@localhost:5432/autoapply
+      JWT_SECRET: ci-only-secret
+      GEMINI_API_KEY: dummy-no-usado-en-el-gate
+      PORT: "3001"
+      NODE_ENV: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # gitleaks necesita historial para escanear el diff
+
+      # --- Capa 2: Secret scanning (bloquea claves/tokens en el codigo) --------
+      - name: Gitleaks (secret scanning)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITLEAKS_LICENSE: solo requerido en repos de organizacion.
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar cliente psql
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Instalar dependencias
+        working-directory: backend
+        # --include=dev fuerza las devDependencies (ts-node / ts-node-dev) aunque
+        # NODE_ENV=production, necesarias para el seed y para levantar el backend.
+        run: npm ci --include=dev
+
+      # --- Capa 3: SAST basico sobre dependencias (informativo, no bloquea) -----
+      # No bloquea el gate por advisories de dependencias transitivas de terceros;
+      # el gate DURO son los tests de regresion (IDOR + A10) mas abajo.
+      - name: npm audit (SAST dependencias)
+        continue-on-error: true
+        working-directory: backend
+        run: npm audit --audit-level=high
+
+      - name: Aplicar schema y seed
+        working-directory: backend
+        run: |
+          psql "$DB_URL" -f ../database/schema.sql
+          npm run seed
+
+      - name: Levantar backend
+        working-directory: backend
+        run: |
+          npm run dev &
+          echo "Esperando readiness del backend..."
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001/health || true)
+            if [ "$code" = "200" ]; then echo "backend UP"; exit 0; fi
+            sleep 2
+          done
+          echo "El backend no respondio a tiempo"; exit 1
+
+      # --- Capa 1: regresion de las vulnerabilidades parchadas (GATE DURO) -----
+      - name: Tests de regresion de seguridad (IDOR + A10)
+        run: bash scripts/security-regression.sh http://localhost:3001
+
+      # --- Capa 4: DAST informativo (no bloquea por falsos positivos) ----------
+      - name: OWASP ZAP baseline (DAST)
+        continue-on-error: true
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: http://localhost:3001
+          fail_action: false
+          allow_issue_writing: false   # evita el error "Resource not accessible" (no crea issues)
