@@ -1,0 +1,68 @@
+@startuml data-flow-diagram
+' Diagrama de flujo de datos — AutoApply Bot
+' Los puntos rojos (X) marcan donde se rompe la seguridad.
+' Render: plantuml docs/diagrams/data-flow-diagram.puml
+
+title Flujo de datos — AutoApply Bot\nPuntos rojos = donde se rompe la seguridad
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Helvetica
+skinparam ArrowColor #444444
+skinparam rectangle {
+  BorderColor #333333
+  BackgroundColor #F4F4F4
+}
+
+actor "Atacante\n(Kali 192.168.5.10)" as attacker #FADBD8
+actor "Usuario legítimo" as user #D5F5E3
+
+rectangle "Frontend\nNext.js (3000)" as fe
+rectangle "Backend REST API\nExpress + Node (3001)" as api
+
+rectangle "Middleware\nverifyToken (JWT)" as auth
+rectangle "errorHandler\n(global)" as errh #FADBD8
+
+rectangle "Controllers" as ctrl {
+  rectangle "proposalController" as pc #FADBD8
+  rectangle "authExtras /\nvulnerableController" as vc #FADBD8
+}
+
+database "PostgreSQL\n(3001 -> 5432)" as db
+cloud "Google Gemini API" as gemini #FCF3CF
+
+user --> fe
+attacker --> api : (1) peticiones directas con JWT propio
+fe --> api
+api --> auth : valida token
+auth --> ctrl : req.userId
+
+pc --> db : SELECT/UPDATE/DELETE
+vc --> db
+api ..> errh : ante cualquier excepción
+pc --> gemini : prompt con datos de la oferta
+
+' ---- Puntos de ruptura de seguridad ----
+note right of pc #FADBD8
+  <b><color:red>X1 — IDOR (A01:2025 / CWE-639)</color></b>
+  Las consultas no filtran por owner:
+  no compara proposal.user_id con req.userId
+end note
+
+note right of errh #FADBD8
+  <b><color:red>X2 — Mishandling (A10:2025 / CWE-209)</color></b>
+  Devuelve err.message y err.stack
+  al cliente en la respuesta HTTP
+end note
+
+note right of gemini #FCF3CF
+  <b><color:red>X3 — Prompt Injection (LLM01:2025 / CWE-1427)</color></b>
+  job.description se concatena en el prompt
+  sin delimitar dato vs. instrucción
+end note
+
+note bottom of vc #FADBD8
+  <b><color:red>X4 — Information Leak (CWE-200)</color></b> token de reset en la respuesta
+  <b><color:red>X5 — RCE (CWE-94)</color></b> eval() sobre entrada del usuario
+end note
+
+@enduml
