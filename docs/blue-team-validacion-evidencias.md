@@ -264,7 +264,115 @@ bloqueada=false  <- propuesta legítima              (pasa correctamente)
 
 ---
 
-## 4. Reproducción
+## 4. Vulnerabilidad 2 — Mishandling de errores (A10:2025)
+
+**CWE:** CWE-209 (Generation of Error Message Containing Sensitive Information)
+**Archivo remediado:** `backend/src/middleware/errorHandler.ts` (+ `utils/logger.ts`)
+
+El middleware global devolvía `err.message` y `err.stack` directamente en la
+respuesta HTTP ante cualquier excepción, exponiendo rutas internas del servidor,
+librerías usadas y la estructura del proyecto.
+
+### 🔴 ANTES — versión vulnerable
+
+```text
+$ curl -X POST http://192.168.5.20:3001/api/proposals -d '{"job_offer_id": '
+{"message":"Unexpected end of JSON input",
+ "error":"SyntaxError: Unexpected end of JSON input
+     at JSON.parse (<anonymous>)
+     at parse (/home/ubuntu/ciberseguridad-proyecto-2026/backend/node_modules/body-parser/lib/types/json.js:92:19)
+     at .../backend/node_modules/raw-body/index.js:238"}
+```
+
+🔴 Stack trace completo expuesto: ruta absoluta de instalación, `body-parser`,
+`raw-body` y la estructura del stack tecnológico.
+
+### 🔵 DESPUÉS — versión sanitizada
+
+```text
+$ curl -X POST http://192.168.5.20:3001/api/proposals -d '{"job_offer_id": '
+{"success":false,"message":"Error interno del servidor"}
+```
+
+🔵 El cliente solo recibe un mensaje genérico. El detalle técnico (`err.message`,
+`err.stack`, método, ruta, IP) se registra **únicamente** en el log interno del
+servidor mediante Winston (`logger.error`), disponible para el equipo de
+administración pero nunca expuesto al exterior.
+
+### Contramedida aplicada
+
+- Respuesta al cliente **siempre genérica** (`'Error interno del servidor'`),
+  sin importar el entorno (`NODE_ENV`).
+- Logging estructurado con **Winston** para trazabilidad interna.
+- Cubierto por el **test de regresión** del pipeline (caso 6, sección 7): el gate
+  falla si el `errorHandler` vuelve a filtrar `error` / `stack` / `SyntaxError`.
+
+---
+
+## 5. Vulnerabilidades adicionales — Token leak (CWE-200) y RCE (CWE-94)
+
+Fuera del alcance obligatorio del anteproyecto, el equipo remedió dos
+vulnerabilidades adicionales presentes en `version-vulnerable`
+(`controllers/vulnerableController.ts`). Parches en
+`controllers/authExtrasController.ts` + `models/PasswordReset.ts`.
+
+### 5.1 Information Leak en reset de contraseña (CWE-200)
+
+**🔴 ANTES:** `POST /api/auth/forgot-password-vulnerable` devolvía el token de
+reset en el cuerpo de la respuesta HTTP, permitiendo un Account Takeover completo
+con solo leer esa respuesta.
+
+```text
+$ curl -X POST .../api/auth/forgot-password-vulnerable -d '{"email":"attacker@test.com"}'
+{"success":true,"resetToken":"1eb6c9d5...mrjpc101", ...}   <- token expuesto
+```
+
+**🔵 DESPUÉS:** `POST /api/auth/forgot-password` ya no devuelve el token. Se guarda
+solo su hash (SHA-256) con expiración de 1h en la tabla `password_resets`, y la
+respuesta es genérica (anti-enumeración de usuarios).
+
+```text
+$ curl -X POST .../api/auth/forgot-password -d '{"email":"attacker@test.com"}'
+{"success":true,"message":"Si el email está registrado, recibirás instrucciones..."}
+```
+
+Evidencia: `docs/Evidencias/Sanitizadas/06-token-leak-bloqueado.png` (rama
+`version-vulnerable`).
+
+### 5.2 RCE vía `eval()` en configuración MCP (CWE-94)
+
+**🔴 ANTES:** `POST /api/auth/node-load-method/customMCP` procesaba la entrada del
+usuario con `eval()`, permitiendo ejecución remota de comandos.
+
+```text
+$ curl -X POST .../customMCP -d '{"inputs":{"mcpServerConfig":"{... exec(\"whoami\") ...}"}}'
+{"success":true,"executionContext":{"user":"ubuntu","nodeVersion":"v20.20.2","hostname":"victima", ...}}
+```
+
+🔴 RCE confirmado: el servidor reveló su usuario (`ubuntu`), versión de Node y
+hostname (`victima`).
+
+**🔵 DESPUÉS:** se reemplazó `eval()` por `JSON.parse()` con validación estricta de
+esquema (allowlist de campos). El mismo payload ya no es JSON válido y se rechaza
+antes de ejecutar nada.
+
+```text
+$ curl -X POST .../customMCP -d '{"inputs":{"mcpServerConfig":"{... exec(...) ...}"}}'
+{"success":false,"error":"Formato JSON inválido"}
+```
+
+Evidencia: `docs/Evidencias/Sanitizadas/07-rce-whoami-bloqueado.png` (rama
+`version-vulnerable`).
+
+### Cobertura en el pipeline
+
+Ambas contramedidas están cubiertas por el **TEST 3** de
+`scripts/security-regression.sh`: el gate falla si `forgot-password` vuelve a
+exponer `resetToken` o si `customMCP` vuelve a ejecutar el payload (eval activo).
+
+---
+
+## 6. Reproducción
 
 ```bash
 # 1. PostgreSQL desechable
@@ -296,7 +404,7 @@ curl -s -X POST http://localhost:3001/api/proposals/generate \
 
 ---
 
-## 5. Pipeline de seguridad (Security Gate CI/CD)
+## 7. Pipeline de seguridad (Security Gate CI/CD)
 
 Para impedir que estas vulnerabilidades **reaparezcan** en el futuro, se
 implementó un pipeline DevSecOps en GitHub Actions
@@ -370,12 +478,15 @@ Con branch protection (opcional) el check rojo impediría el merge por completo.
 
 ---
 
-## 6. Conclusión
+## 8. Conclusión
 
-| Vulnerabilidad | OWASP | Estado en `version-sanitizada` |
+| Vulnerabilidad | OWASP / CWE | Estado en `version-sanitizada` |
 |---|---|---|
-| IDOR / Broken Access Control | A01:2025 | ✅ Remediada y validada (404 en todo acceso ajeno) |
-| Prompt Injection | LLM01:2025 | ✅ Remediada y validada (P1 obedecido en vulnerable, bloqueado en sanitizada) |
+| IDOR / Broken Access Control | A01:2025 · CWE-639 | ✅ Remediada y validada (404 en todo acceso ajeno) |
+| Mishandling de errores | A10:2025 · CWE-209 | ✅ Remediada y validada (mensaje genérico + Winston) |
+| Prompt Injection | LLM01:2025 · CWE-1427 | ✅ Remediada y validada (P1 obedecido en vulnerable, bloqueado en sanitizada) |
+| Information Leak (reset de contraseña) | CWE-200 | ✅ Remediada (token hasheado, nunca expuesto) |
+| RCE vía `eval()` | CWE-94 | ✅ Remediada (`JSON.parse()` + validación de esquema) |
 | Reintroducción de vulnerabilidades | — | ✅ Prevenida con Security Gate (CI) en cada PR |
 
 Ambas contramedidas fueron **verificadas empíricamente contra el código en
